@@ -42,10 +42,5 @@ esbuild.build({
 	logLevel: "info",
 	sourcemap: prod ? false : 'inline',
 	treeShaking: true,
-	outfile: (prod ? '' : process.env.HOME + process.env.OBSIDIAN_PATH) + 'main.js',
-}).then(() => {
-	if (!prod) {
-		fs.copyFileSync("manifest.json", `${process.env.HOME + process.env.OBSIDIAN_PATH}/manifest.json`);
-		fs.copyFileSync("styles.css", `${process.env.HOME + process.env.OBSIDIAN_PATH}/styles.css`);
-	}
+	outfile: 'main.js',
 }).catch(() => process.exit(1));

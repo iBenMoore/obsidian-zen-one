@@ -1,4 +1,4 @@
-import {setIcon, View, WorkspaceLeaf} from "obsidian";
+import {setIcon, View, WorkspaceLeaf, App} from "obsidian";
 import {VIEW_TYPE_ZEN} from "../constants";
 import Zen from "../main";
 import {GlobalPreferences, ZenPreferences} from "../utils/types";
@@ -47,28 +47,48 @@ export class ZenView extends View {
 		super.onload();
 	}
 
-	async toggleZen() {
+	async toggleZen(activePaneOnly = false) {
 		this.plugin.settings.enabled = !this.plugin.settings.enabled;
+
+		(this.plugin.settings.enabled && activePaneOnly) 
+			? this.plugin.settings.activePaneOnly = true 
+			: this.plugin.settings.activePaneOnly = false;
+
+	// Make sure a real root node is active/focused.
+	// This is especially important for Zen One (Active Pane Only) Mode,
+	// as it prevents blank screens from happening if a sidebar element is currently selected.	
+	if(this.plugin.settings.enabled && activePaneOnly 
+		&& this.app.workspace.getMostRecentLeaf(this.app.workspace.rootSplit)
+		&& typeof this.app.workspace.getMostRecentLeaf(this.app.workspace.rootSplit)! != "undefined")
+		this.app.workspace.setActiveLeaf(this.app.workspace.getMostRecentLeaf(this.app.workspace.rootSplit)!);
+	
 		if (this.plugin.settings.preferences.fullScreen) {
 			this.plugin.settings.enabled ? this.containerEl.doc.body.requestFullscreen() : this.containerEl.doc.exitFullscreen();
 		}
 
 		await this.plugin.saveSettings();
 		await this.updateClass();
+		// Added to make sure the ribbon toggle button doesn't jump around or temporarily hide when
+		// it's not supposed to.  onLayoutChange works for this, but isn't officially exposed in the
+		// Obsidian API, don't know if there is a cleaner way to do this.
+		// @ts-ignore
+		await this.app.workspace.onLayoutChange();		
 	}
 
 	addEventListeners() {
 		this.leaf.tabHeaderEl.addEventListener("click", async (e: any) => {
 			e.stopPropagation();
 			e.preventDefault();
-			await this.toggleZen();
+			await this.toggleZen(e.shiftKey);
 		});
 	}
 
+	// This is the Zen enable/disable icon that appears when you are in Zen mode
+  	// in the root workspace header, not the main activate icon in the left sidebar.
 	createHeaderIcon() {
 		let headerIcon = createEl("div", {
 			cls: "zen-header",
-			attr: {"data-zen": "icon", "aria-label": "Zen", "aria-label-position": "bottom"}
+			attr: {"data-zen": "icon", "aria-label": "Zen - Disable", "aria-label-position": "bottom"}
 		});
 
 		let headerInner = createEl("div", {cls: "zen-header-inner"});
@@ -132,14 +152,31 @@ export class ZenView extends View {
 
 		setIcon(this.leaf.tabHeaderInnerIconEl, this.plugin.settings.enabled ? 'eye-off' : 'eye');
 
+		this.leaf.tabHeaderInnerIconEl.setAttr("aria-label", this.plugin.settings.enabled ? "Zen - Disable" : "Zen - Enable (or Shift + Click  for Zen One \"Active Pane Only\")");
+
+
 		if (this.plugin.settings.enabled) {
 			this.removeBodyClasses();
 			this.addBodyClasses(true);
+
+			if (this.plugin.settings.activePaneOnly) {
+				this.containerEl.doc.body.addClass("zen-activePaneOnly");
+				// Apply this class directly to the currently active pane,
+				// so that we have control to keep it active and visible even if certain events occur
+				// like selecting a popout window, a hover editor window, etc.
+				if(this.app.workspace.containerEl.querySelector('.mod-root .workspace-tabs.mod-active') != null) 
+					this.app.workspace.containerEl.querySelector('.mod-root .workspace-tabs.mod-active')!.addClass("zen-activePaneOnly");
+			  }			
 
 			this.plugin.integrator.enableIntegrations();
 
 		} else {
 			this.removeBodyClasses(true);
+
+			this.containerEl.doc.body.removeClass("zen-activePaneOnly");
+			if(this.app.workspace.containerEl.querySelector('.mod-root .workspace-tabs.zen-activePaneOnly') != null) 
+				this.app.workspace.containerEl.querySelector('.mod-root .workspace-tabs.zen-activePaneOnly')!.removeClass("zen-activePaneOnly");
+
 			this.plugin.integrator.disableIntegrations();
 		}
 
@@ -151,7 +188,7 @@ export class ZenView extends View {
 	}
 
 	getDisplayText(): string {
-		return 'Zen';
+		return 'Zen - Enable (or Shift + Click  for Zen One \"Active Pane Only\")';
 	}
 
 	getIcon(): string {

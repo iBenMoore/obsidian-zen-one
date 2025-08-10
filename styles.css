@@ -40,6 +40,42 @@ https://github.com/Maxymillion/zen
 	padding: var(--size-2-2) var(--size-2-3);
 }
 
+/* Zen One (Active Pane Only) - Hide all non-active notes */
+.zen-enabled.zen-activePaneOnly:not(.is-popout-window) .app-container .workspace-split:not(:has(.workspace-tabs.zen-activePaneOnly)) {
+    display: none !important;	
+}
+
+/* Required for Zen One to hide unselected main window notes if you also have a popup window open */
+.zen-enabled.zen-activePaneOnly:not(.is-popout-window) .workspace-tabs:not(.zen-activePaneOnly) {
+    display: none !important;	
+}
+
+/* In Zen One (Active Pane Only) mode,
+    the active workspace-tabs may not get decorated with the mod-top-right-space class,
+	and this causes the min/max/close buttons to not function.  This fixes the issue.  */
+.zen-enabled.zen-activePaneOnly.is-hidden-frameless:not(.is-fullscreen):not(.mod-macos) .workspace-tabs.zen-activePaneOnly .workspace-tab-header-container:after {
+  -webkit-app-region: no-drag;
+  content: '';
+  height: 100%;
+  right: 0;
+  top: 0;
+  position: absolute;
+  width: var(--frame-right-space);
+}
+
+/* Hide the Title bar, but it's still there from a click and hold to drag the window perspective */
+.zen-enabled.zen-module--titleBar .mod-root div.workspace-tab-container {
+	position: absolute;
+	height: 100%;
+	width: 100%;
+}
+
+/* Better blend the min/max/close buttons in zen mode, but they'll still show up clearly on hover */
+.zen-enabled.zen-module--titleBar div.titlebar-button-container.mod-right:not(:hover) {
+	background-color: var(--background-primary) !important;
+	opacity: 0.2;
+}
+
 .zen-int--author {
 	opacity: 0.5;
 }

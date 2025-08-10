@@ -2,6 +2,7 @@ import {IntegrationOptions} from "../plugin.integrations";
 
 export interface Settings {
 	enabled: boolean,
+	activePaneOnly: boolean,
 	preferences: ZenPreferences,
 	global: GlobalPreferences
 	integrations: Array<{ name: string, description: string, enabled: boolean, available: boolean, options: IntegrationOptions }>
@@ -18,12 +19,14 @@ export interface ZenPreferences{
 	fileHeader: boolean,
 	sideDockLeft: boolean,
 	sideDockRight: boolean,
+	titleBar: boolean,
 	fullScreen: boolean,
 	autoHideZen: boolean,
 }
 
 export const DEFAULT_SETTINGS: Settings = {
 	enabled: false,
+	activePaneOnly: false,
 	preferences: {
 		ribbon: true,
 		tabs: false,
@@ -31,6 +34,7 @@ export const DEFAULT_SETTINGS: Settings = {
 		fileHeader: false,
 		sideDockLeft: true,
 		sideDockRight: true,
+		titleBar: false,
 		fullScreen: false,
 		autoHideZen: false,
 	},
