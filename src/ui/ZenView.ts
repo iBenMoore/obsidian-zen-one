@@ -17,12 +17,15 @@ export class ZenView extends View {
 	plugin: Zen;
 
 	navigation: true;
+	
+	previousLeaf: WorkspaceLeaf | null;
 
 	constructor(leaf: ZenLeaf, plugin: Zen) {
 		super(leaf);
 		this.leaf = leaf;
 		this.plugin = plugin;
 		this.addGlobalClasses();
+		this.previousLeaf = null;
 	}
 
 	onunload() {
@@ -45,6 +48,8 @@ export class ZenView extends View {
 		this.addEventListeners();
 
 		super.onload();
+
+		this.previousLeaf = this.app.workspace.getMostRecentLeaf();
 	}
 
 	async toggleZen(activePaneOnly = false) {
@@ -75,12 +80,48 @@ export class ZenView extends View {
 		await this.app.workspace.onLayoutChange();		
 	}
 
+	restoreHeaderIconOnAllTabsClose() {
+		// getMostRecentLeaf only returns root leaves.
+		// Passing in the root of this.app.workspace.rootSplit ignores interactions
+		// from an active leaf switching perspective with secondary pop-out windows.
+		const newLeaf = this.app.workspace.getMostRecentLeaf(this.app.workspace.rootSplit);
+		
+		if (newLeaf && newLeaf !== this.previousLeaf) {
+			  this.previousLeaf = newLeaf;
+  
+			  // Count the number of open tabs.			
+			  let numOpenTabs = 0;
+			  // Iterate main area workspace leaves (ignores pop-outs).
+			  this.app.workspace.iterateRootLeaves((leaf) => {
+				  numOpenTabs++;
+			  });
+			  
+			  if (numOpenTabs == 1) {
+				  // Reset the headerIcon html position to be last element of it's
+				  // html parent. This prevents the icon from getting permanently
+				  // 'hidden' behind other elements stacked on top of it.
+				  let headerIcon = document.querySelector(".zen-header");
+				  if(headerIcon && headerIcon.parentNode) headerIcon.parentNode.appendChild(headerIcon);
+				  //console.log("Header Icon Reset");
+			  }
+			  //console.log("Active leaf changed");
+		}
+	}
+
 	addEventListeners() {
 		this.leaf.tabHeaderEl.addEventListener("click", async (e: any) => {
 			e.stopPropagation();
 			e.preventDefault();
 			await this.toggleZen(e.shiftKey);
 		});
+
+		// Restore the position of the header icon
+		// if all tabs are closed (and the default new tab opens).
+    	this.registerEvent(
+        	this.app.workspace.on('active-leaf-change', () => {
+            	this.restoreHeaderIconOnAllTabsClose();
+        	})
+    	);
 	}
 
 	// This is the Zen enable/disable icon that appears when you are in Zen mode
